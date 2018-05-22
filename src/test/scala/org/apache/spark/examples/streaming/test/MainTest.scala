@@ -69,10 +69,9 @@ object MainTest {
     val updateCol = udf(code)
 
     cleanDS.columns.foreach(fieldSet => {
-      val sql = spark.sql("select * from fieldSet f, range r where f.FieldRange = r.FieldRangeType")
-      if (sql.collect().length > 0) {
-        val map = sql.rdd.map(row => (row.getAs("FieldRangeValue").toString, row.getAs("FieldRange").toString))
-          .collectAsMap()
+      val df = spark.sql(s"select * from fieldSet f, range r where f.FieldRange = r.FieldRangeType and f.FieldName = '$fieldSet'")
+      if (df.collect().length > 0) {
+        val map = df.rdd.map(row => (row.getAs("FieldRangeValue").toString, row.getAs("FieldRange").toString)).collectAsMap()
         cleanDS = cleanDS.withColumn(fieldSet, updateCol(cleanDS.col(fieldSet), typedLit(map)))
       }
     })
