@@ -3,7 +3,7 @@ package org.apache.spark.examples.streaming.test
 import java.util.UUID
 
 import org.apache.kudu.spark.kudu.KuduContext
-import org.apache.spark.examples.streaming.test.FieldFilterTest.registerDF
+import org.apache.spark.examples.streaming.utils.SparkUtil._
 import org.apache.spark.examples.streaming.utils.{CommonFilter, PropertiesUtil, StructTypeConverter}
 import org.apache.spark.sql.functions.{from_json, typedLit, udf}
 import org.apache.spark.sql.{ForeachWriter, Row, SparkSession}

@@ -3,10 +3,11 @@ package org.apache.spark.examples.streaming
 import java.util.UUID
 
 import org.apache.kudu.spark.kudu.KuduContext
+import org.apache.spark.examples.streaming.utils.SparkUtil._
 import org.apache.spark.examples.streaming.utils.{CommonFilter, PropertiesUtil}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, ForeachWriter, Row, SparkSession}
+import org.apache.spark.sql.{ForeachWriter, Row}
 
 object FieldFilter extends Logging {
 
@@ -88,36 +89,5 @@ object FieldFilter extends Logging {
   }
 
   case class FIELD(ID: Int, CPHM: String, SSDQ: String)
-
-  /**
-    * 根据表名生成DataFrame
-    *
-    * @param spark     sparkSession
-    * @param tableName 表名
-    * @return
-    */
-  def registerDF(spark: SparkSession, tableName: String): DataFrame = {
-    spark.read
-      .format(PropertiesUtil.getProperty("config.sql.format"))
-      .option("url", PropertiesUtil.getProperty("config.sql.url"))
-      .option("dbtable", if (tableName.isEmpty) PropertiesUtil.getProperty("config.sql.table") else tableName)
-      .option("user", PropertiesUtil.getProperty("config.sql.username"))
-      .option("password", PropertiesUtil.getProperty("config.sql.password"))
-      .load()
-
-  }
-
-  /**
-    * 初始化spark
-    *
-    * @return
-    */
-  def initSpark: SparkSession = {
-    SparkSession
-      .builder()
-      .appName(PropertiesUtil.getProperty("config.app.name"))
-      .master(PropertiesUtil.getProperty("config.app.master"))
-      .getOrCreate()
-  }
 
 }

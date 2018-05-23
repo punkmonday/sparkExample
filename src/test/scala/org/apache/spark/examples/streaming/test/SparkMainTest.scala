@@ -1,6 +1,6 @@
 package org.apache.spark.examples.streaming.test
 
-import org.apache.spark.examples.streaming.test.FieldFilterTest.registerDF
+import org.apache.spark.examples.streaming.utils.SparkUtil._
 import org.apache.spark.sql.SparkSession
 
 object SparkMainTest {
