@@ -38,5 +38,9 @@ object SparkUtil {
       .getOrCreate()
   }
 
-
+  def collectAsMap(df: DataFrame, key: String, value: String): scala.collection.Map[String, String] = {
+    df.select(key, value).rdd
+      .map(row => (row.getAs[String](key), row.getAs[String](value)))
+      .collectAsMap()
+  }
 }

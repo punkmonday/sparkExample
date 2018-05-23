@@ -14,15 +14,16 @@ object MainTest {
 
     val spark = SparkSession.builder.
       master("local[*]")
-      .appName("StructuredStreamingTest")
+      .appName("MainTest")
+      .config("spark.debug.maxToStringFields", 200)
       .getOrCreate
     import spark.implicits._
 
     val kuduContext = new KuduContext(PropertiesUtil.getProperty("config.kudu.url"), spark.sparkContext)
 
-    registerDF(spark, "gathertables").createOrReplaceTempView("table")
-    registerDF(spark, "gatherfieldset").createOrReplaceTempView("fieldSet")
-    registerDF(spark, "fieldrangeinfo").createOrReplaceTempView("range")
+    createDFFromTable(spark, "gathertables", "table")
+    createDFFromTable(spark, "gatherfieldset", "fieldSet")
+    createDFFromTable(spark, "fieldrangeinfo", "range")
 
     val tableName = "t_jc_cljbxx"
     val sql =
@@ -41,10 +42,6 @@ object MainTest {
       """.stripMargin
     val fieldSet = spark.sql(sql)
 
-    val regularMap = fieldSet.select("FieldName", "Regular").rdd
-      .map(row => (row.getAs[String]("FieldName"), row.getAs[String]("Regular")))
-      .collectAsMap()
-
     val scheme = StructTypeConverter.convert(fieldSet)
 
     val inputDS = spark
@@ -59,8 +56,9 @@ object MainTest {
 
     var cleanDS = inputDS.as("copy")
 
+    val regularMap = collectAsMap(fieldSet, "FieldName", "Regular")
     cleanDS.columns.foreach(field => {
-      if (!regularMap(field).isEmpty) {
+      if (regularMap(field) != null) {
         cleanDS = cleanDS.filter(cleanDS.col(field).rlike(regularMap(field)))
       }
     })
@@ -72,9 +70,8 @@ object MainTest {
 
     cleanDS.columns.foreach(fieldSet => {
       val df = spark.sql(s"select * from fieldSet f, range r where f.FieldRange = r.FieldRangeType and f.FieldName = '$fieldSet'")
-      if (df.collect().length > 0) {
-        val map = df.rdd.map(row => (row.getAs("FieldRangeValue").toString, row.getAs("FieldRange").toString)).collectAsMap()
-        cleanDS = cleanDS.withColumn(fieldSet, updateCol(cleanDS.col(fieldSet), typedLit(map)))
+      if (!df.head(1).isEmpty) {
+        cleanDS = cleanDS.withColumn(fieldSet, updateCol(cleanDS.col(fieldSet), typedLit(collectAsMap(df, "FieldRangeValue", "FieldRange"))))
       }
     })
 
@@ -86,13 +83,12 @@ object MainTest {
         override def open(partitionId: Long, version: Long): Boolean = true
 
         override def process(value: Row): Unit = {
-          val df = cleanDS.sqlContext.createDataFrame(cleanDS.sparkSession.sparkContext.parallelize(Seq(value)), scheme)
+          val spark = initSpark
+          val df = spark.sqlContext.createDataFrame(spark.sparkContext.parallelize(Seq(value)), scheme)
           kuduContext.upsertRows(df, PropertiesUtil.getProperty("config.kudu.table"))
         }
 
         override def close(errorOrNull: Throwable): Unit = {}
-      })
-      .start().awaitTermination()
+      }).start().awaitTermination
   }
-
 }
