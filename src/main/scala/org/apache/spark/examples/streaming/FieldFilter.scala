@@ -61,6 +61,7 @@ object FieldFilter extends Logging {
 
         override def process(value: FIELD): Unit = {
 
+
           val spark = initSpark
 
           val row = Row(value.ID, value.CPHM, value.SSDQ)

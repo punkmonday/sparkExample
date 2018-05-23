@@ -2,10 +2,11 @@ package org.apache.spark.examples.streaming.test
 
 import java.util.UUID
 
+import org.apache.kudu.spark.kudu.KuduContext
 import org.apache.spark.examples.streaming.test.FieldFilterTest.registerDF
-import org.apache.spark.examples.streaming.utils.{CommonFilter, StructTypeConverter}
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.examples.streaming.utils.{CommonFilter, PropertiesUtil, StructTypeConverter}
 import org.apache.spark.sql.functions.{from_json, typedLit, udf}
+import org.apache.spark.sql.{ForeachWriter, Row, SparkSession}
 
 object MainTest {
 
@@ -17,12 +18,13 @@ object MainTest {
       .getOrCreate
     import spark.implicits._
 
-    val tableName = "t_jc_cljbxx"
+    val kuduContext = new KuduContext(PropertiesUtil.getProperty("config.kudu.url"), spark.sparkContext)
 
     registerDF(spark, "gathertables").createOrReplaceTempView("table")
     registerDF(spark, "gatherfieldset").createOrReplaceTempView("fieldSet")
     registerDF(spark, "fieldrangeinfo").createOrReplaceTempView("range")
 
+    val tableName = "t_jc_cljbxx"
     val sql =
       s"""
          |select
@@ -50,7 +52,7 @@ object MainTest {
       .format("kafka")
       .option("kafka.bootstrap.servers", "localhost:9092")
       .option("subscribe", "test")
-      .option("startingOffsets", "earliest")
+      //      .option("startingOffsets", "earliest")
       .load().selectExpr("CAST(value AS STRING)")
       .as[String]
       .select(from_json($"value", scheme).as("data")).select("data.*")
@@ -80,6 +82,16 @@ object MainTest {
       .outputMode("append")
       .format("console")
       .option("checkpointLocation", "/tmp/temporary-" + UUID.randomUUID.toString)
+      .foreach(new ForeachWriter[Row] {
+        override def open(partitionId: Long, version: Long): Boolean = true
+
+        override def process(value: Row): Unit = {
+          val df = cleanDS.sqlContext.createDataFrame(cleanDS.sparkSession.sparkContext.parallelize(Seq(value)), scheme)
+          kuduContext.upsertRows(df, PropertiesUtil.getProperty("config.kudu.table"))
+        }
+
+        override def close(errorOrNull: Throwable): Unit = {}
+      })
       .start().awaitTermination()
   }
 
