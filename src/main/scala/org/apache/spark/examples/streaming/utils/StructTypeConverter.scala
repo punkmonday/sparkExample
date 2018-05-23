@@ -7,7 +7,6 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 object StructTypeConverter {
 
   def convert(df: DataFrame): StructType = {
-    //根据'xdwl_bigdatabase.gatherfieldset'表字段组装需要抓取的schema
     val structFields = df.rdd.filter(row => row.getAs("IsGather").toString.toBoolean).map(row =>
       StructField(
         row.getAs("FieldName").toString,
@@ -28,7 +27,6 @@ object StructTypeConverter {
   def main(args: Array[String]): Unit = {
 
     val spark = SparkSession.builder.master("local[*]").appName("StructTypeConverter").getOrCreate()
-
     val df = spark.read
       .format(PropertiesUtil.getProperty("config.sql.format"))
       .option("url", PropertiesUtil.getProperty("config.sql.url"))
@@ -36,9 +34,7 @@ object StructTypeConverter {
       .option("user", PropertiesUtil.getProperty("config.sql.username"))
       .option("password", PropertiesUtil.getProperty("config.sql.password"))
       .load()
-
     val schema = StructTypeConverter.convert(df)
-
     println(schema)
   }
 }

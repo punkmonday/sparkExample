@@ -23,7 +23,7 @@ object StructuredNetworkWordCount {
     //写流到控制台
     val query = wordCount.writeStream.outputMode("complete").format("console").start()
 
-    query.awaitTermination();
+    query.awaitTermination()
   }
 
 }
