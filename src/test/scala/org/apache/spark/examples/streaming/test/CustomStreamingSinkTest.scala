@@ -5,6 +5,8 @@ import java.util.UUID
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.streaming.Trigger
 
+import scala.concurrent.duration._
+
 /**
   * 此程序演示spark structure streaming获取kafka stream并输出到控制台
   *
@@ -22,7 +24,7 @@ object CustomStreamingSinkTest {
       .option("startingOffsets", "earliest")
       .load()
       .writeStream
-      .trigger(Trigger.ProcessingTime(10000))
+      .trigger(Trigger.ProcessingTime(10.seconds))
       .outputMode("update")
       .format("demo")
       .option("checkpointLocation", "/tmp/temporary-" + UUID.randomUUID.toString)
