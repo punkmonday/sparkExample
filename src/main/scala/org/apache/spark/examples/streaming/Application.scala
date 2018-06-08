@@ -10,7 +10,7 @@ object Application extends App {
   val spark = SparkSession.builder.master("local[*]").appName("StructuredStreamingTest").getOrCreate()
   //隐式导入，必须，否则会报错
   spark.readStream
-    .format("org.apache.spark.sql.kafka010.KafkaSourceProvider")
+    .format("kafka")
     .option("kafka.bootstrap.servers", "localhost:9092")
     .option("subscribe", "test")
     .option("startingOffsets", "earliest")
@@ -18,7 +18,7 @@ object Application extends App {
     .writeStream
     .trigger(Trigger.ProcessingTime(10000))
     .outputMode("update")
-    .format("org.apache.spark.examples.streaming.provider.DemoSinkProvider")
+    .format("demo")
     .option("checkpointLocation", "/tmp/temporary-" + UUID.randomUUID.toString)
     .start().awaitTermination()
 }
