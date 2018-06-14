@@ -26,12 +26,13 @@ class DataBaseConfig(spark: SparkSession) extends Logging {
       .load()
   }
 
-  def filter(dataFrame: DataFrame): DataFrame = {
-    var filteredDataFrame = dataFrame
-    dataFrame.columns.foreach(field => {
-      filteredDataFrame = rangeFilter(DataBaseConfig.regularFilter(filteredDataFrame, field), field)
-    })
-    filteredDataFrame
+  def collectAsRangeMap(field: String): scala.collection.Map[String, String] = {
+    val sql =
+      s"""select r.FieldRangeValue, r.FieldRange from $CONFIG_FIELD f, $CONFIG_RANGE r
+         |where f.FieldRange = r.FieldRangeType
+         |and f.FieldName = '$field'
+       """.stripMargin
+    spark.sparkContext.broadcast(collectAsMap(spark.sql(sql), "FieldRangeValue", "FieldRange")).value
   }
 
   def rangeFilter(dataFrame: DataFrame, field: String): DataFrame = {
@@ -44,21 +45,16 @@ class DataBaseConfig(spark: SparkSession) extends Logging {
     }
   }
 
-  def collectAsRangeMap(field: String): scala.collection.Map[String, String] = {
-    val sql =
-      s"""select r.FieldRangeValue, r.FieldRange from $CONFIG_FIELD f, $CONFIG_RANGE r
-         |where f.FieldRange = r.FieldRangeType
-         |and f.FieldName = '$field'
-       """.stripMargin
-    spark.sparkContext.broadcast(collectAsMap(spark.sql(sql), "FieldRangeValue", "FieldRange")).value
+  def filter(dataFrame: DataFrame): DataFrame = {
+    var filteredDataFrame = dataFrame
+    dataFrame.columns.foreach(field => {
+      filteredDataFrame = rangeFilter(DataBaseConfig.regularFilter(filteredDataFrame, field), field)
+    })
+    filteredDataFrame
   }
 }
 
 object DataBaseConfig {
-  val CONFIG_KAFKA_SERVER: String = PropertiesUtil.getProperty("config.kafka.server")
-  val CONFIG_KAFKA_TOPIC: String = PropertiesUtil.getProperty("config.kafka.topic")
-  val CONFIG_KUDU_URL: String = PropertiesUtil.getProperty("config.kudu.url")
-  val CONFIG_KUDU_TABLE: String = PropertiesUtil.getProperty("config.kudu.table")
   private val CONFIG_APP_NAME = PropertiesUtil.getProperty("config.app.name")
   private val CONFIG_APP_MASTER = PropertiesUtil.getProperty("config.app.master")
   private val CONFIG_SQL_FORMAT = PropertiesUtil.getProperty("config.sql.format")
@@ -70,6 +66,11 @@ object DataBaseConfig {
   private val CONFIG_TABLE = PropertiesUtil.getProperty("config.sql.table")
   private val CONFIG_FIELD = PropertiesUtil.getProperty("config.sql.field")
   private val CONFIG_RANGE = PropertiesUtil.getProperty("config.sql.range")
+
+  val CONFIG_KAFKA_SERVER: String = PropertiesUtil.getProperty("config.kafka.server")
+  val CONFIG_KAFKA_TOPIC: String = PropertiesUtil.getProperty("config.kafka.topic")
+  val CONFIG_KUDU_URL: String = PropertiesUtil.getProperty("config.kudu.url")
+  val CONFIG_KUDU_TABLE: String = PropertiesUtil.getProperty("config.kudu.table")
   var SCHEMA: StructType = _
   var REGULAR_MAP: collection.Map[String, String] = _
 
@@ -89,12 +90,6 @@ object DataBaseConfig {
     config
   }
 
-  def collectAsMap(df: DataFrame, key: String, value: String): scala.collection.Map[String, String] = {
-    df.select(key, value).rdd
-      .map(row => (row.getAs[String](key), row.getAs[String](value)))
-      .collectAsMap()
-  }
-
   /**
     * 初始化spark
     *
@@ -108,13 +103,19 @@ object DataBaseConfig {
       .getOrCreate()
   }
 
+  def collectAsMap(df: DataFrame, key: String, value: String): scala.collection.Map[String, String] = {
+    df.select(key, value).rdd
+      .map(row => (row.getAs[String](key), row.getAs[String](value)))
+      .collectAsMap()
+  }
+
   def convertRange(filterRange: String, map: scala.collection.Map[String, String]): String = {
     val filteredMap = map.filter(_._1.split(",").contains(filterRange))
     if (filteredMap.isEmpty) filterRange else filteredMap.values.head
   }
 
   def regularFilter(dataFrame: DataFrame, field: String): DataFrame = {
-    if (DataBaseConfig.REGULAR_MAP(field) != null) {
+    if (DataBaseConfig.REGULAR_MAP(field) != null && DataBaseConfig.REGULAR_MAP(field).nonEmpty) {
       dataFrame.filter(dataFrame.col(field).rlike(DataBaseConfig.REGULAR_MAP(field)))
     } else {
       dataFrame
