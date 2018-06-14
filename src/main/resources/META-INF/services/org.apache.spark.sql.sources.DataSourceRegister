@@ -1,1 +1,2 @@
 org.apache.spark.examples.streaming.provider.DemoSinkProvider
+org.apache.spark.examples.streaming.provider.KuduSinkProvider
