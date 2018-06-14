@@ -21,6 +21,7 @@ object DataBaseFilterTest extends App {
     , "{\"ID\":123,\"CPHM\":null, \"CPXH\":null,\"CLCP\":null,\"SSDQ\":null}"
     , "{\"ID\":123,\"CPHM\":\"\", \"CPXH\":\"\",\"CLCP\":\"\",\"SSDQ\":\"\"}"
     , "{\"ID\":123,\"CPHM\":\"123\"}"
+    , "{\"ID\":123,\"CPHM\":\"云A123\", \"CPXH\":\"test\",\"CLCP\":\"2018-06-11 11:01:57\",\"SSDQ\":\"昆明市\"}"
     , "{\"ID\":123}")
   var df = spark.createDataset(seq).selectExpr("CAST(value AS STRING)")
     .as[String]
@@ -37,6 +38,7 @@ object DataBaseFilterTest extends App {
   def addBatch(batchId: Long, data: DataFrame): Unit = {
     println("-------------------------------------------")
     println(s"addBatch($batchId)")
+    println(DataBaseConfig.SCHEMA)
     val startTime = System.currentTimeMillis
     val structFields = data.schema.map(s => StructField(s.name.toLowerCase, s.dataType, s.nullable, s.metadata)).toArray
     val dataFrame = data.sparkSession.createDataFrame(data.sparkSession.sparkContext.parallelize(data.collect()), new StructType(structFields))
