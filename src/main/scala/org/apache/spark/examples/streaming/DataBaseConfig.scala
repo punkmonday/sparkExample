@@ -1,5 +1,6 @@
 package org.apache.spark.examples.streaming
 
+import org.apache.commons.lang3.StringUtils
 import org.apache.spark.examples.streaming.DataBaseConfig.{CONFIG_FIELD, CONFIG_RANGE, collectAsMap}
 import org.apache.spark.examples.streaming.utils.{PropertiesUtil, StructTypeConverter}
 import org.apache.spark.internal.Logging
@@ -115,8 +116,8 @@ object DataBaseConfig {
   }
 
   def regularFilter(dataFrame: DataFrame, field: String): DataFrame = {
-    if (DataBaseConfig.REGULAR_MAP(field) != null && DataBaseConfig.REGULAR_MAP(field).nonEmpty) {
-      dataFrame.filter(trim(dataFrame.col(field)).rlike(DataBaseConfig.REGULAR_MAP(field)))
+    if (StringUtils.isNotEmpty(REGULAR_MAP(field))) {
+      dataFrame.filter(trim(dataFrame.col(field)).rlike(REGULAR_MAP(field)))
     } else {
       dataFrame
     }
