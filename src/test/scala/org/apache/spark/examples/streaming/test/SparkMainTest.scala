@@ -1,8 +1,5 @@
 package org.apache.spark.examples.streaming.test
 
-import org.apache.spark.examples.streaming.utils.SparkUtil._
-import org.apache.spark.sql.SparkSession
-
 object SparkMainTest {
 
   def main(args: Array[String]): Unit = {
@@ -35,9 +32,6 @@ object SparkMainTest {
 
     val joinedFieldSet = fieldSet.join(cleangrange, fieldSet("FieldRange") === range("FieldRangeType"), "left").select("FieldName", "FieldRangeType", "values")
     joinedFieldSet.show
-
-    //    val map = joinedFieldSet.rdd.map(row => (row.getAs[String]("Id"), row.getAs[String]("FieldRange"))).collectAsMap()
-    //    map.foreach(println)
   }
 
 }
