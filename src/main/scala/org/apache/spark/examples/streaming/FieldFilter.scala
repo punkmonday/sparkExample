@@ -2,20 +2,14 @@ package org.apache.spark.examples.streaming
 
 import java.util.UUID
 
-import org.apache.kudu.spark.kudu.KuduContext
-import org.apache.spark.examples.streaming.utils.SparkUtil._
-import org.apache.spark.examples.streaming.utils.{CommonFilter, PropertiesUtil}
-import org.apache.spark.internal.Logging
-import org.apache.spark.sql.types._
-import org.apache.spark.sql.{ForeachWriter, Row}
-
+/**
+  * 代码有点乱，主要实现从数据库读取数据，并按照数据库的配置etl
+  */
 object FieldFilter extends Logging {
 
   def main(args: Array[String]) {
 
     val spark = initSpark
-
-    import spark.implicits._
 
     registerDF(spark, "gatherfieldset").createOrReplaceTempView("fieldSet")
 
