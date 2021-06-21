@@ -6,4 +6,4 @@
 
 # IDE配置
 
-在项目结构里新增scala sdk(File -> Project Structure -> global libraries)
+在项目结构里新增scala sdk(File -> Project Structure -> Global Libraries)
