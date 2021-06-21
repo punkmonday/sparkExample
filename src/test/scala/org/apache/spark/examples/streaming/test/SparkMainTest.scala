@@ -1,5 +1,8 @@
 package org.apache.spark.examples.streaming.test
 
+import org.apache.spark.examples.streaming.utils.SparkUtil.registerDF
+import org.apache.spark.sql.SparkSession
+
 object SparkMainTest {
 
   def main(args: Array[String]): Unit = {

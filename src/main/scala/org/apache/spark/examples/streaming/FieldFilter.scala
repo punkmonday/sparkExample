@@ -1,10 +1,17 @@
 package org.apache.spark.examples.streaming
 
+import org.apache.kudu.spark.kudu.KuduContext
+import org.apache.spark.examples.streaming.utils.SparkUtil.{initSpark, registerDF}
+import org.apache.spark.examples.streaming.utils.{CommonFilter, PropertiesUtil}
+import org.apache.spark.internal.Logging
+import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
+import org.apache.spark.sql.{ForeachWriter, Row}
+
 import java.util.UUID
 
 /**
-  * 代码有点乱，主要实现从数据库读取数据，并按照数据库的配置etl
-  */
+ * 代码有点乱，主要实现从数据库读取数据，并按照数据库的配置etl
+ */
 object FieldFilter extends Logging {
 
   def main(args: Array[String]) {
@@ -22,6 +29,8 @@ object FieldFilter extends Logging {
     val rangeMap = spark.sql(s"select FieldRangeValue,FieldRange from range where FieldRangeType = '$fieldRange'")
       .rdd.map(row => (row.getAs("FieldRangeValue").toString, row.getAs("FieldRange").toString))
       .collectAsMap()
+
+    import spark.implicits._
 
     val inputDS = spark.readStream
       .format("kafka")
